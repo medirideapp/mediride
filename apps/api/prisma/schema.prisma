@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  RIDER
+  DRIVER
+  ADMIN
+}
+
+enum DriverStatus {
+  OFFLINE
+  AVAILABLE
+  BUSY
+}
+
+enum RideStatus {
+  REQUESTED
+  ACCEPTED
+  ARRIVING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  role         Role     @default(RIDER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  driverProfile Driver?
+  ridesAsRider  Ride[]  @relation("RiderRides")
+}
+
+model Driver {
+  id              String       @id @default(uuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          DriverStatus @default(OFFLINE)
+  licenseNumber   String?
+  isApproved      Boolean      @default(false)
+  // Last known location (WGS84). Stored as lat/lng; PostGIS queries use raw SQL.
+  lastLat         Float?
+  lastLng         Float?
+  lastLocationAt  DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  vehicle Vehicle?
+  rides   Ride[]  @relation("DriverRides")
+}
+
+model Vehicle {
+  id           String  @id @default(uuid())
+  driverId     String  @unique
+  driver       Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  make         String
+  model        String
+  year         Int?
+  color        String?
+  plateNumber  String
+  wheelchair   Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Ride {
+  id              String     @id @default(uuid())
+  riderId         String
+  rider           User       @relation("RiderRides", fields: [riderId], references: [id])
+  driverId        String?
+  driver          Driver?    @relation("DriverRides", fields: [driverId], references: [id])
+  status          RideStatus @default(REQUESTED)
+
+  pickupAddress   String
+  pickupLat       Float
+  pickupLng       Float
+  dropoffAddress  String
+  dropoffLat      Float
+  dropoffLng      Float
+
+  notes           String?
+  estimatedMiles  Float?
+  fareEstimate    Float?
+
+  requestedAt     DateTime  @default(now())
+  acceptedAt      DateTime?
+  arrivingAt      DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+
+  riderConfirmedStart  Boolean @default(false)
+  driverConfirmedStart Boolean @default(false)
+  riderConfirmedStop   Boolean @default(false)
+  driverConfirmedStop  Boolean @default(false)
+
+  locationPings LocationPing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([riderId])
+  @@index([driverId])
+}
+
+model LocationPing {
+  id        String   @id @default(uuid())
+  rideId    String
+  ride      Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  driverId  String
+  lat       Float
+  lng       Float
+  heading   Float?
+  speed     Float?
+  createdAt DateTime @default(now())
+
+  @@index([rideId, createdAt])
+}

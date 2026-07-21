@@ -1,0 +1,15 @@
+node_modules
+.turbo
+dist
+.next
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+coverage
+.prisma
+apps/api/prisma/migrations/**/migration_lock.toml.bak
+certs
+infra/nginx/certs/*
+!infra/nginx/certs/.gitkeep

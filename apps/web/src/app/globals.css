@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-glow: radial-gradient(1200px 600px at 10% -10%, #d5efe9 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #c7ebe3 0%, transparent 50%),
+    #f3f7f6;
+}
+
+body {
+  background: var(--bg-glow);
+  min-height: 100vh;
+}
+
+code {
+  font-size: 0.9em;
+}

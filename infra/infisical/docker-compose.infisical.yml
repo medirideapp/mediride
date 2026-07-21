@@ -1,0 +1,31 @@
+# Optional self-hosted Infisical (open-source secrets manager)
+# Docs: https://infisical.com/docs/self-hosting/overview
+services:
+  infisical-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: infisical
+      POSTGRES_PASSWORD: infisical
+      POSTGRES_DB: infisical
+    volumes:
+      - infisical_pg:/var/lib/postgresql/data
+
+  infisical-redis:
+    image: redis:7-alpine
+
+  infisical:
+    image: infisical/infisical:latest
+    ports:
+      - "8080:8080"
+    environment:
+      ENCRYPTION_KEY: ${INFISICAL_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}
+      AUTH_SECRET: ${INFISICAL_AUTH_SECRET:-change-me-infisical-auth-secret-32chars}
+      DB_CONNECTION_URI: postgres://infisical:infisical@infisical-db:5432/infisical
+      REDIS_URL: redis://infisical-redis:6379
+      SITE_URL: http://localhost:8080
+    depends_on:
+      - infisical-db
+      - infisical-redis
+
+volumes:
+  infisical_pg:

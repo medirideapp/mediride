@@ -1,0 +1,17 @@
+{
+  "name": "nemt-platform",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:generate": "pnpm --filter @nemt/api prisma:generate",
+    "db:migrate": "pnpm --filter @nemt/api prisma:migrate",
+    "db:push": "pnpm --filter @nemt/api prisma:push"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}
