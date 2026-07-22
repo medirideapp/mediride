@@ -1,7 +1,7 @@
 {
-  "name": "NEMT Care",
-  "short_name": "NEMT",
-  "description": "Non-emergency medical transportation — book, track, and confirm rides",
+  "name": "MediRide",
+  "short_name": "MediRide",
+  "description": "Non-emergency medical transportation — Concierge, Assisted, live tracking",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f3f7f6",

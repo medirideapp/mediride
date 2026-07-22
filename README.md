@@ -26,6 +26,11 @@ MediRide is a medical transportation (NEMT) platform for fast booking, driver di
 | Hosting | Docker Compose on Hetzner / DigitalOcean |
 | Observability | Grafana + Loki + Prometheus + Uptime Kuma |
 
+## Documentation
+
+- **[Task document (step-by-step, numbered)](docs/TASK_DOCUMENT.md)** — every task with objective, reason, functions, expected output, and complete/next status
+- [Deploy guide](infra/DEPLOY.md)
+
 ## Quick start (local)
 
 ### Prerequisites
