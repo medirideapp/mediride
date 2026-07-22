@@ -28,6 +28,12 @@ enum RideStatus {
   CANCELLED
 }
 
+/** Lyft Assisted–style door help */
+enum AssistanceLevel {
+  NONE
+  DOOR_TO_DOOR
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -38,68 +44,82 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  driverProfile Driver?
-  ridesAsRider  Ride[]  @relation("RiderRides")
+  driverProfile      Driver?
+  ridesAsRider       Ride[]  @relation("RiderRides")
+  conciergeBookings  Ride[]  @relation("ConciergeBookings")
 }
 
 model Driver {
-  id              String       @id @default(uuid())
-  userId          String       @unique
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status          DriverStatus @default(OFFLINE)
-  licenseNumber   String?
-  isApproved      Boolean      @default(false)
-  // Last known location (WGS84). Stored as lat/lng; PostGIS queries use raw SQL.
-  lastLat         Float?
-  lastLng         Float?
-  lastLocationAt  DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         DriverStatus @default(OFFLINE)
+  licenseNumber  String?
+  isApproved     Boolean      @default(false)
+  lastLat        Float?
+  lastLng        Float?
+  lastLocationAt DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   vehicle Vehicle?
   rides   Ride[]  @relation("DriverRides")
 }
 
 model Vehicle {
-  id           String  @id @default(uuid())
-  driverId     String  @unique
-  driver       Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  make         String
-  model        String
-  year         Int?
-  color        String?
-  plateNumber  String
-  wheelchair   Boolean @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid())
+  driverId    String   @unique
+  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  make        String
+  model       String
+  year        Int?
+  color       String?
+  plateNumber String
+  wheelchair  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Ride {
-  id              String     @id @default(uuid())
-  riderId         String
-  rider           User       @relation("RiderRides", fields: [riderId], references: [id])
-  driverId        String?
-  driver          Driver?    @relation("DriverRides", fields: [driverId], references: [id])
-  status          RideStatus @default(REQUESTED)
+  id       String     @id @default(uuid())
+  riderId  String
+  rider    User       @relation("RiderRides", fields: [riderId], references: [id])
+  driverId String?
+  driver   Driver?    @relation("DriverRides", fields: [driverId], references: [id])
+  status   RideStatus @default(REQUESTED)
 
-  pickupAddress   String
-  pickupLat       Float
-  pickupLng       Float
-  dropoffAddress  String
-  dropoffLat      Float
-  dropoffLng      Float
+  pickupAddress  String
+  pickupLat      Float
+  pickupLng      Float
+  dropoffAddress String
+  dropoffLat     Float
+  dropoffLng     Float
 
-  notes           String?
-  estimatedMiles  Float?
-  fareEstimate    Float?
+  notes          String?
+  estimatedMiles Float?
+  fareEstimate   Float?
 
-  requestedAt     DateTime  @default(now())
-  acceptedAt      DateTime?
-  arrivingAt      DateTime?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  cancelReason    String?
+  // Lyft Healthcare–style fields
+  scheduledFor    DateTime?
+  assistanceLevel AssistanceLevel @default(NONE)
+  wheelchairNeeded Boolean        @default(false)
+  ridePurpose     String?
+  organizationName String?
+
+  // Concierge: clinic books for a patient (may not have an app account)
+  isConcierge       Boolean @default(false)
+  bookedByUserId    String?
+  bookedBy          User?   @relation("ConciergeBookings", fields: [bookedByUserId], references: [id])
+  patientName       String?
+  patientPhone      String?
+
+  requestedAt  DateTime  @default(now())
+  acceptedAt   DateTime?
+  arrivingAt   DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
 
   riderConfirmedStart  Boolean @default(false)
   driverConfirmedStart Boolean @default(false)
@@ -114,6 +134,7 @@ model Ride {
   @@index([status])
   @@index([riderId])
   @@index([driverId])
+  @@index([scheduledFor])
 }
 
 model LocationPing {

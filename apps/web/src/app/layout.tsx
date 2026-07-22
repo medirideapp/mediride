@@ -14,14 +14,14 @@ const sans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: 'NEMT Care — Non-Emergency Medical Transportation',
+  title: 'MediRide — Non-Emergency Medical Transportation',
   description:
-    'Book medical rides, track your driver live, and confirm trip start and stop.',
+    'Healthcare rides with Concierge booking, door-to-door assistance, and live tracking.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'NEMT Care',
+    title: 'MediRide',
   },
 };
 

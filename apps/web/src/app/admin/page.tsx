@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
@@ -29,6 +29,9 @@ type RideRow = {
   pickupAddress: string;
   dropoffAddress: string;
   requestedAt: string;
+  isConcierge?: boolean;
+  patientName?: string | null;
+  assistanceLevel?: string;
   rider: { fullName: string };
   driver?: { user: { fullName: string } } | null;
 };
@@ -40,6 +43,17 @@ export default function AdminPage() {
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [rides, setRides] = useState<RideRow[]>([]);
   const [error, setError] = useState('');
+  const [conciergeMsg, setConciergeMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const [patientName, setPatientName] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
+  const [orgName, setOrgName] = useState('Clinic');
+  const [pickupAddress, setPickupAddress] = useState('Patient home');
+  const [dropoffAddress, setDropoffAddress] = useState('Clinic / hospital');
+  const [scheduledFor, setScheduledFor] = useState('');
+  const [assisted, setAssisted] = useState(true);
+  const [wheelchairNeeded, setWheelchairNeeded] = useState(false);
 
   const load = useCallback(async () => {
     const [s, d, r] = await Promise.all([
@@ -72,6 +86,41 @@ export default function AdminPage() {
     await load();
   }
 
+  async function bookConcierge(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setConciergeMsg('');
+    setError('');
+    try {
+      await api('/rides/concierge', {
+        method: 'POST',
+        body: JSON.stringify({
+          patientName,
+          patientPhone,
+          organizationName: orgName,
+          pickupAddress,
+          pickupLat: 32.7767,
+          pickupLng: -96.797,
+          dropoffAddress,
+          dropoffLat: 32.787,
+          dropoffLng: -96.81,
+          assistanceLevel: assisted ? 'DOOR_TO_DOOR' : 'NONE',
+          wheelchairNeeded,
+          ridePurpose: 'Concierge medical transport',
+          ...(scheduledFor ? { scheduledFor: new Date(scheduledFor).toISOString() } : {}),
+        }),
+      });
+      setConciergeMsg(`Ride booked for ${patientName}`);
+      setPatientName('');
+      setPatientPhone('');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Concierge booking failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading || !user) {
     return (
       <AppShell>
@@ -99,6 +148,87 @@ export default function AdminPage() {
           </div>
         ))}
       </div>
+
+      <section className="mb-8 rounded-2xl bg-white/80 p-5 ring-1 ring-brand-100">
+        <h2 className="font-display text-xl text-brand-900">MediRide Concierge</h2>
+        <p className="mt-1 text-sm text-brand-800/75">
+          Book a ride for a patient who does not need the app — same idea as Lyft Concierge.
+        </p>
+        {conciergeMsg && <p className="mt-2 text-sm text-emerald-700">{conciergeMsg}</p>}
+        <form onSubmit={bookConcierge} className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            Patient name
+            <input
+              required
+              value={patientName}
+              onChange={(e) => setPatientName(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm">
+            Patient phone
+            <input
+              value={patientPhone}
+              onChange={(e) => setPatientPhone(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm">
+            Organization
+            <input
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm">
+            Schedule (optional)
+            <input
+              type="datetime-local"
+              value={scheduledFor}
+              onChange={(e) => setScheduledFor(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm sm:col-span-1">
+            Pickup
+            <input
+              required
+              value={pickupAddress}
+              onChange={(e) => setPickupAddress(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm">
+            Dropoff
+            <input
+              required
+              value={dropoffAddress}
+              onChange={(e) => setDropoffAddress(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={assisted} onChange={(e) => setAssisted(e.target.checked)} />
+            Door-to-door assistance
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={wheelchairNeeded}
+              onChange={(e) => setWheelchairNeeded(e.target.checked)}
+            />
+            Wheelchair vehicle
+          </label>
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-xl bg-brand-600 px-4 py-2.5 text-white hover:bg-brand-700 disabled:opacity-60 sm:col-span-2"
+          >
+            {busy ? 'Booking…' : 'Book concierge ride'}
+          </button>
+        </form>
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-3 font-display text-xl text-brand-900">Drivers</h2>
@@ -157,7 +287,7 @@ export default function AdminPage() {
             <thead className="border-b border-brand-100 text-brand-700/70">
               <tr>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Rider</th>
+                <th className="px-4 py-3">Patient / Rider</th>
                 <th className="px-4 py-3">Driver</th>
                 <th className="px-4 py-3">Route</th>
                 <th className="px-4 py-3">Requested</th>
@@ -166,8 +296,12 @@ export default function AdminPage() {
             <tbody>
               {rides.map((r) => (
                 <tr key={r.id} className="border-b border-brand-50">
-                  <td className="px-4 py-3">{r.status}</td>
-                  <td className="px-4 py-3">{r.rider.fullName}</td>
+                  <td className="px-4 py-3">
+                    {r.status}
+                    {r.isConcierge ? ' · Concierge' : ''}
+                    {r.assistanceLevel === 'DOOR_TO_DOOR' ? ' · Assisted' : ''}
+                  </td>
+                  <td className="px-4 py-3">{r.patientName || r.rider.fullName}</td>
                   <td className="px-4 py-3">{r.driver?.user.fullName ?? '—'}</td>
                   <td className="px-4 py-3">
                     {r.pickupAddress} → {r.dropoffAddress}

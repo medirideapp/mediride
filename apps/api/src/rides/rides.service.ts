@@ -4,9 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DriverStatus, RideStatus, Role } from '@prisma/client';
+import { AssistanceLevel, DriverStatus, RideStatus, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateRideDto } from './dto/rides.dto';
+import { ConciergeRideDto, CreateRideDto } from './dto/rides.dto';
 import { ACTIVE_STATUSES, canTransition } from './ride-state';
 
 type NearestDriverRow = {
@@ -94,11 +94,26 @@ export class RidesService {
     return { estimatedMiles: Math.round(miles * 100) / 100, fareEstimate: Math.round(fare * 100) / 100 };
   }
 
+  private healthcareFields(dto: CreateRideDto) {
+    return {
+      scheduledFor: dto.scheduledFor ? new Date(dto.scheduledFor) : null,
+      assistanceLevel: dto.assistanceLevel ?? AssistanceLevel.NONE,
+      wheelchairNeeded: dto.wheelchairNeeded ?? false,
+      ridePurpose: dto.ridePurpose,
+      organizationName: dto.organizationName,
+      notes: dto.notes,
+    };
+  }
+
   async requestRide(riderId: string, dto: CreateRideDto) {
     const active = await this.prisma.ride.findFirst({
-      where: { riderId, status: { in: ACTIVE_STATUSES } },
+      where: {
+        riderId,
+        status: { in: ACTIVE_STATUSES },
+        scheduledFor: null,
+      },
     });
-    if (active) {
+    if (active && !dto.scheduledFor) {
       throw new BadRequestException('You already have an active ride');
     }
 
@@ -119,12 +134,60 @@ export class RidesService {
         dropoffAddress: dto.dropoffAddress,
         dropoffLat: dto.dropoffLat,
         dropoffLng: dto.dropoffLng,
-        notes: dto.notes,
+        ...this.healthcareFields(dto),
         ...estimate,
       },
       include: {
         rider: { select: { id: true, fullName: true, phone: true } },
       },
+    });
+
+    const nearest = await this.findNearestDrivers(dto.pickupLat, dto.pickupLng);
+    return { ride, nearestDrivers: nearest };
+  }
+
+  /**
+   * Lyft Concierge style: clinic/admin arranges a ride for a patient.
+   * Patient does not need the app — coordinator books on their behalf.
+   */
+  async conciergeRide(adminUserId: string, dto: ConciergeRideDto) {
+    let riderId = adminUserId;
+
+    if (dto.riderEmail) {
+      const rider = await this.prisma.user.findUnique({
+        where: { email: dto.riderEmail.toLowerCase() },
+      });
+      if (!rider) {
+        throw new NotFoundException('Rider account not found for that email');
+      }
+      riderId = rider.id;
+    }
+
+    const estimate = this.estimateFare(
+      dto.pickupLat,
+      dto.pickupLng,
+      dto.dropoffLat,
+      dto.dropoffLng,
+    );
+
+    const ride = await this.prisma.ride.create({
+      data: {
+        riderId,
+        status: RideStatus.REQUESTED,
+        pickupAddress: dto.pickupAddress,
+        pickupLat: dto.pickupLat,
+        pickupLng: dto.pickupLng,
+        dropoffAddress: dto.dropoffAddress,
+        dropoffLat: dto.dropoffLat,
+        dropoffLng: dto.dropoffLng,
+        isConcierge: true,
+        bookedByUserId: adminUserId,
+        patientName: dto.patientName,
+        patientPhone: dto.patientPhone,
+        ...this.healthcareFields(dto),
+        ...estimate,
+      },
+      include: this.rideInclude(),
     });
 
     const nearest = await this.findNearestDrivers(dto.pickupLat, dto.pickupLng);

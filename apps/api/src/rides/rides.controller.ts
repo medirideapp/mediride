@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { RidesService } from './rides.service';
-import { CancelRideDto, CreateRideDto } from './dto/rides.dto';
+import { CancelRideDto, ConciergeRideDto, CreateRideDto } from './dto/rides.dto';
 import { CurrentUser, AuthUser } from '../auth/current-user.decorator';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -15,6 +15,13 @@ export class RidesController {
   @Roles(Role.RIDER, Role.ADMIN)
   request(@CurrentUser() user: AuthUser, @Body() dto: CreateRideDto) {
     return this.rides.requestRide(user.userId, dto);
+  }
+
+  /** Lyft Concierge: book a ride for a patient (no patient app required) */
+  @Post('concierge')
+  @Roles(Role.ADMIN)
+  concierge(@CurrentUser() user: AuthUser, @Body() dto: ConciergeRideDto) {
+    return this.rides.conciergeRide(user.userId, dto);
   }
 
   @Get('mine')

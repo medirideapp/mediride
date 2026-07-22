@@ -18,6 +18,10 @@ type Ride = {
   dropoffLat: number;
   dropoffLng: number;
   fareEstimate?: number;
+  scheduledFor?: string | null;
+  assistanceLevel?: string;
+  wheelchairNeeded?: boolean;
+  ridePurpose?: string;
   riderConfirmedStart: boolean;
   driverConfirmedStart: boolean;
   riderConfirmedStop: boolean;
@@ -43,6 +47,10 @@ export default function RiderPage() {
   const [pickupLng, setPickupLng] = useState(-96.797);
   const [dropoffLat, setDropoffLat] = useState(32.787);
   const [dropoffLng, setDropoffLng] = useState(-96.81);
+  const [scheduledFor, setScheduledFor] = useState('');
+  const [assisted, setAssisted] = useState(false);
+  const [wheelchairNeeded, setWheelchairNeeded] = useState(false);
+  const [ridePurpose, setRidePurpose] = useState('Medical appointment');
 
   const { connected, location } = useTrackingSocket(ride?.id);
 
@@ -91,6 +99,10 @@ export default function RiderPage() {
           dropoffAddress,
           dropoffLat,
           dropoffLng,
+          ridePurpose,
+          wheelchairNeeded,
+          assistanceLevel: assisted ? 'DOOR_TO_DOOR' : 'NONE',
+          ...(scheduledFor ? { scheduledFor: new Date(scheduledFor).toISOString() } : {}),
         }),
       });
       setRide(res.ride);
@@ -193,6 +205,39 @@ export default function RiderPage() {
                   required
                 />
               </label>
+              <label className="block text-sm">
+                Purpose
+                <input
+                  className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+                  value={ridePurpose}
+                  onChange={(e) => setRidePurpose(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm">
+                Schedule for later (optional)
+                <input
+                  type="datetime-local"
+                  className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+                  value={scheduledFor}
+                  onChange={(e) => setScheduledFor(e.target.value)}
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={assisted}
+                  onChange={(e) => setAssisted(e.target.checked)}
+                />
+                Door-to-door assistance (MediRide Assisted)
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={wheelchairNeeded}
+                  onChange={(e) => setWheelchairNeeded(e.target.checked)}
+                />
+                Wheelchair-accessible vehicle needed
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block text-sm">
                   Dropoff lat
@@ -251,6 +296,15 @@ export default function RiderPage() {
               <p className="text-sm text-brand-800/80">
                 {ride.pickupAddress} → {ride.dropoffAddress}
               </p>
+              {ride.scheduledFor && (
+                <p className="text-sm">Scheduled: {new Date(ride.scheduledFor).toLocaleString()}</p>
+              )}
+              {ride.assistanceLevel === 'DOOR_TO_DOOR' && (
+                <p className="text-sm text-brand-700">Door-to-door assistance requested</p>
+              )}
+              {ride.wheelchairNeeded && (
+                <p className="text-sm text-brand-700">Wheelchair-accessible vehicle</p>
+              )}
               {ride.fareEstimate != null && (
                 <p className="text-sm">Est. fare: ${ride.fareEstimate.toFixed(2)}</p>
               )}

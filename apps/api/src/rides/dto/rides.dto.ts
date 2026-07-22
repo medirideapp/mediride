@@ -1,4 +1,14 @@
-import { IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { AssistanceLevel } from '@prisma/client';
 
 export class CreateRideDto {
   @IsString()
@@ -30,6 +40,42 @@ export class CreateRideDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /** Schedule for later (ISO string). Omit for ASAP. */
+  @IsOptional()
+  @IsDateString()
+  scheduledFor?: string;
+
+  @IsOptional()
+  @IsEnum(AssistanceLevel)
+  assistanceLevel?: AssistanceLevel;
+
+  @IsOptional()
+  @IsBoolean()
+  wheelchairNeeded?: boolean;
+
+  @IsOptional()
+  @IsString()
+  ridePurpose?: string;
+
+  @IsOptional()
+  @IsString()
+  organizationName?: string;
+}
+
+/** Clinic/admin books a ride for a patient (Lyft Concierge style) */
+export class ConciergeRideDto extends CreateRideDto {
+  @IsString()
+  patientName!: string;
+
+  @IsOptional()
+  @IsString()
+  patientPhone?: string;
+
+  /** Existing rider account email, or leave blank to attach to booking admin as placeholder rider */
+  @IsOptional()
+  @IsString()
+  riderEmail?: string;
 }
 
 export class CancelRideDto {

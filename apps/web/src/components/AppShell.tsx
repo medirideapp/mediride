@@ -17,7 +17,7 @@ export function AppShell({
       <header className="border-b border-brand-100 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="font-display text-xl tracking-tight text-brand-700">
-            NEMT Care
+            MediRide
           </Link>
           <nav className="flex items-center gap-3 text-sm">
             {user?.role === 'RIDER' && (
