@@ -1,6 +1,14 @@
-# NEMT Care — Non-Emergency Medical Transportation Platform
+# MediRide
 
-Uber Health / Lyft Healthcare style ride-hailing for non-emergency medical trips: book a ride, live GPS tracking for rider and driver, and mutual confirmation for trip start and stop.
+MediRide is a medical transportation (NEMT) platform for fast booking, driver dispatch, live patient/driver tracking, and secure service management — similar in flow to Uber Health / Lyft Healthcare.
+
+## Features
+
+- **Fast booking** — riders request pickup and dropoff
+- **Driver dispatch** — nearest approved drivers via PostGIS
+- **Live tracking** — WebSocket GPS for rider and driver
+- **Start / stop confirmation** — both parties confirm trip start and end
+- **Admin** — approve drivers, view rides and stats
 
 ## Stack
 
@@ -15,7 +23,7 @@ Uber Health / Lyft Healthcare style ride-hailing for non-emergency medical trips
 | Maps | Mapbox GL JS |
 | Proxy/TLS | Nginx + Let's Encrypt |
 | Secrets | Infisical (optional) / `.env` locally |
-| Hosting | Docker Compose on Hetzner / DigitalOcean (~$10–20/mo) |
+| Hosting | Docker Compose on Hetzner / DigitalOcean |
 | Observability | Grafana + Loki + Prometheus + Uptime Kuma |
 
 ## Quick start (local)
@@ -55,8 +63,8 @@ pnpm --filter @nemt/api dev
 pnpm --filter @nemt/web dev
 ```
 
-- Web: http://localhost:3000  
-- API: http://localhost:3001/health  
+- Web: http://localhost:3000
+- API: http://localhost:3001/health
 
 ### Seed accounts
 
@@ -79,21 +87,14 @@ pnpm --filter @nemt/web dev
 
 Start/stop require **both** rider and driver confirmation.
 
-## Production deploy (VPS)
+## Production deploy
 
-1. Point DNS (Cloudflare recommended) to your VPS.
-2. Copy repo to `/opt/nemt-platform`.
-3. Load secrets via Infisical or a secured `.env` (never commit secrets).
-4. Replace `DOMAIN` in `infra/nginx/nginx.prod.conf` and run:
+See [infra/DEPLOY.md](infra/DEPLOY.md).
 
 ```bash
 DOMAIN=rides.example.com EMAIL=ops@example.com bash infra/nginx/init-letsencrypt.sh
 docker compose -f docker-compose.prod.yml up -d
 ```
-
-5. Monitoring: Grafana `:3002`, Uptime Kuma `:3003`.
-
-CI/CD: `.github/workflows/ci-cd.yml` builds, pushes to GHCR, and SSH-deploys.
 
 ## Project layout
 
@@ -105,4 +106,4 @@ infra/       nginx, postgres init, monitoring, Infisical
 
 ## License
 
-Private / proprietary unless otherwise stated.
+MIT License — see [LICENSE](LICENSE).
