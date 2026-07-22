@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Issue Let's Encrypt certs via Certbot (run on VPS after DNS points to the server)
-# Usage: DOMAIN=rides.example.com EMAIL=ops@example.com ./infra/nginx/init-letsencrypt.sh
+# Usage: DOMAIN=mediride.net EMAIL=ops@mediride.net ./infra/nginx/init-letsencrypt.sh
 
 set -euo pipefail
 
