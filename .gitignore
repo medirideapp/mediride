@@ -29,4 +29,6 @@ npm-debug.log*
 certs
 infra/nginx/certs/*
 !infra/nginx/certs/.gitkeep
+*.docx
+MediRide_Task_Document.docx
 apps/api/prisma/migrations/**/migration_lock.toml.bak
