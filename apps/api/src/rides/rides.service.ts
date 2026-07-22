@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConciergeRideDto, CreateRideDto } from './dto/rides.dto';
 import { ACTIVE_STATUSES, canTransition } from './ride-state';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type NearestDriverRow = {
   id: string;
@@ -24,6 +25,7 @@ export class RidesService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => OrganizationsService))
     private orgs: OrganizationsService,
+    private notify: NotificationsService,
   ) {}
 
   /** Haversine fallback when PostGIS raw query is unavailable */
@@ -151,6 +153,10 @@ export class RidesService {
     });
 
     const nearest = await this.findNearestDrivers(dto.pickupLat, dto.pickupLng);
+
+    const rider = await this.prisma.user.findUnique({ where: { id: riderId } });
+    void this.notify.rideRequested(rider?.phone, dto.pickupAddress);
+
     return { ride, nearestDrivers: nearest };
   }
 
@@ -199,6 +205,7 @@ export class RidesService {
     });
 
     const nearest = await this.findNearestDrivers(dto.pickupLat, dto.pickupLng);
+    void this.notify.rideRequested(dto.patientPhone, dto.pickupAddress);
     return { ride, nearestDrivers: nearest };
   }
 
@@ -233,13 +240,19 @@ export class RidesService {
       return r;
     });
 
+    const phone = updated.patientPhone || updated.rider?.phone;
+    void this.notify.rideAccepted(phone, updated.driver?.user?.fullName || 'your driver');
+
     return updated;
   }
 
   async markArriving(rideId: string, userId: string) {
-    return this.transitionAsDriver(rideId, userId, RideStatus.ARRIVING, {
+    const updated = await this.transitionAsDriver(rideId, userId, RideStatus.ARRIVING, {
       arrivingAt: new Date(),
     });
+    const phone = updated.patientPhone || updated.rider?.phone;
+    void this.notify.rideArriving(phone);
+    return updated;
   }
 
   async confirmStart(rideId: string, userId: string, role: Role) {
@@ -268,6 +281,8 @@ export class RidesService {
         data: { status: RideStatus.IN_PROGRESS, startedAt: new Date() },
         include: this.rideInclude(),
       });
+      const phone = updated.patientPhone || updated.rider?.phone;
+      void this.notify.rideStarted(phone);
     }
 
     return updated;
@@ -312,6 +327,9 @@ export class RidesService {
       if (updated.passId) {
         await this.orgs.chargeRideToPass(updated.id);
       }
+
+      const phone = updated.patientPhone || updated.rider?.phone;
+      void this.notify.rideCompleted(phone);
     }
 
     return updated;

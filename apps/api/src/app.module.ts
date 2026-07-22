@@ -9,6 +9,7 @@ import { DriversModule } from './drivers/drivers.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { AdminModule } from './admin/admin.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { HealthController } from './health.controller';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
@@ -17,6 +18,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    NotificationsModule,
     AuthModule,
     RidesModule,
     DriversModule,

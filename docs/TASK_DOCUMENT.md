@@ -340,9 +340,9 @@ This document lists **every task** with:
 |--------|--------|
 | **Objective** | Public URL for clinics/patients |
 | **Reason** | GitHub holds code; VPS runs the app 24/7 |
-| **Functions** | Follow `infra/DEPLOY.md` |
+| **Functions** | `scripts/vps-bootstrap.sh`, `scripts/vps-deploy.sh`, `infra/VPS_CHECKLIST.md`, `infra/DEPLOY.md` |
 | **Expected output** | `https://your-domain` serves MediRide |
-| **Status** | ⬜ NEXT (needs your VPS + domain) |
+| **Status** | 🟡 PREP COMPLETE — waiting on your VPS IP + domain (cannot finish without them) |
 
 ---
 
@@ -350,8 +350,8 @@ This document lists **every task** with:
 
 | Task | Objective | Status |
 |------|-----------|--------|
-| 7.1 Organization Pass / budgets | Lyft Pass–style paid rides | ⬜ |
-| 7.2 SMS OTP / trip alerts (Twilio) | Notify patient without app | ⬜ |
+| 7.1 Organization Pass / budgets | Lyft Pass–style paid rides | ✅ Done (Task 5.6) |
+| 7.2 SMS OTP / trip alerts (Twilio) | Notify patient without app | ✅ COMPLETE (log mode without keys; Twilio when set) |
 | 7.3 Stripe payments | Collect or bill org | ⬜ |
 | 7.4 EHR / FHIR booking stub | Hospital workflow integration | ⬜ |
 | 7.5 Native wrapper (Capacitor) | App stores if needed | ⬜ |
@@ -395,8 +395,8 @@ pnpm --filter @nemt/web dev
 | 3 Booking | ✅ Complete |
 | 4 Live tracking | ✅ Complete |
 | 5 Lyft-style products | ✅ 5.1–5.6 complete (Pass included) |
-| 6 DevOps | ✅ Config done · ⬜ 6.6 live VPS next |
-| 7 Future | ⬜ Backlog |
+| 6 DevOps | ✅ Config + VPS scripts · 🟡 6.6 live URL waits on your server |
+| 7 Future | ✅ 7.2 SMS · ⬜ Stripe / FHIR / native |
 
 **Recommended next task:** **6.6 Deploy to VPS** — follow `infra/DEPLOY.md` with domain + secrets.
 
