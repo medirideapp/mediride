@@ -22,8 +22,8 @@ const products = [
   {
     id: 'pass',
     title: 'Organization Pass',
-    subtitle: 'Coming soon · like Lyft Pass',
-    body: 'Cover ride costs for patients or staff with budget controls — designed for health systems and payers.',
+    subtitle: 'Like Lyft Pass',
+    body: 'Cover ride costs for patients or staff with monthly budgets and per-ride caps — managed in the admin Pass desk.',
   },
 ];
 

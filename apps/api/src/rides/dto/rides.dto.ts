@@ -61,6 +61,11 @@ export class CreateRideDto {
   @IsOptional()
   @IsString()
   organizationName?: string;
+
+  /** Attach Lyft Pass–style org budget at booking time */
+  @IsOptional()
+  @IsString()
+  passId?: string;
 }
 
 /** Clinic/admin books a ride for a patient (Lyft Concierge style) */

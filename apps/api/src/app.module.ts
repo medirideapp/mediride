@@ -8,6 +8,7 @@ import { RidesModule } from './rides/rides.module';
 import { DriversModule } from './drivers/drivers.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { AdminModule } from './admin/admin.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 import { HealthController } from './health.controller';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
@@ -21,6 +22,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     DriversModule,
     TrackingModule,
     AdminModule,
+    OrganizationsModule,
   ],
   controllers: [HealthController],
   providers: [

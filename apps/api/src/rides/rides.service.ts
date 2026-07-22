@@ -1,13 +1,16 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { AssistanceLevel, DriverStatus, RideStatus, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConciergeRideDto, CreateRideDto } from './dto/rides.dto';
 import { ACTIVE_STATUSES, canTransition } from './ride-state';
+import { OrganizationsService } from '../organizations/organizations.service';
 
 type NearestDriverRow = {
   id: string;
@@ -17,7 +20,11 @@ type NearestDriverRow = {
 
 @Injectable()
 export class RidesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => OrganizationsService))
+    private orgs: OrganizationsService,
+  ) {}
 
   /** Haversine fallback when PostGIS raw query is unavailable */
   private haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -102,6 +109,7 @@ export class RidesService {
       ridePurpose: dto.ridePurpose,
       organizationName: dto.organizationName,
       notes: dto.notes,
+      passId: dto.passId,
     };
   }
 
@@ -299,6 +307,11 @@ export class RidesService {
         }
         return r;
       });
+
+      // Charge Lyft Pass–style org budget after completion
+      if (updated.passId) {
+        await this.orgs.chargeRideToPass(updated.id);
+      }
     }
 
     return updated;

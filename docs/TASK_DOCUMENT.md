@@ -1,4 +1,4 @@
-# MediRide — Implementation Task Document
+﻿# MediRide — Implementation Task Document
 
 **Repository:** https://github.com/medirideapp/mediride  
 **Local path:** `C:\Users\USER\Projects\nemt-platform`  
@@ -282,9 +282,9 @@ This document lists **every task** with:
 |--------|--------|
 | **Objective** | Org pays for member rides with caps |
 | **Reason** | Lyft Pass equivalent for health systems |
-| **Functions** | *(Not coded yet — listed on landing as Coming soon)* |
-| **Expected output** | Future: `Organization`, `RidePass`, spend limits |
-| **Status** | ⬜ NEXT (not started) |
+| **Functions** | `Organization`, `RidePass` models; `OrganizationsService`; `POST /organizations`, `POST /organizations/:id/passes`, attach `passId` on concierge rides; charge on COMPLETED |
+| **Expected output** | Admin Pass desk shows budget/spent/left; completed ride increments `spentUsd` |
+| **Status** | ✅ COMPLETE |
 
 ---
 
@@ -394,11 +394,11 @@ pnpm --filter @nemt/web dev
 | 2 Auth | ✅ Complete |
 | 3 Booking | ✅ Complete |
 | 4 Live tracking | ✅ Complete |
-| 5 Lyft-style products | ✅ 5.1–5.5 done · ⬜ 5.6 Pass next |
+| 5 Lyft-style products | ✅ 5.1–5.6 complete (Pass included) |
 | 6 DevOps | ✅ Config done · ⬜ 6.6 live VPS next |
 | 7 Future | ⬜ Backlog |
 
-**Recommended next task:** **5.6 Organization Pass** *or* **6.6 Deploy to VPS** — tell which one to start.
+**Recommended next task:** **6.6 Deploy to VPS** — follow `infra/DEPLOY.md` with domain + secrets.
 
 ---
 

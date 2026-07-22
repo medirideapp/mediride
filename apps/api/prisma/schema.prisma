@@ -47,6 +47,7 @@ model User {
   driverProfile      Driver?
   ridesAsRider       Ride[]  @relation("RiderRides")
   conciergeBookings  Ride[]  @relation("ConciergeBookings")
+  organizationsOwned Organization[] @relation("OrgOwner")
 }
 
 model Driver {
@@ -113,6 +114,10 @@ model Ride {
   patientName       String?
   patientPhone      String?
 
+  // Lyft Pass–style: charge completed ride to an org budget
+  passId String?
+  pass   RidePass? @relation(fields: [passId], references: [id])
+
   requestedAt  DateTime  @default(now())
   acceptedAt   DateTime?
   arrivingAt   DateTime?
@@ -135,6 +140,44 @@ model Ride {
   @@index([riderId])
   @@index([driverId])
   @@index([scheduledFor])
+  @@index([passId])
+}
+
+/** Clinic / health system that pays for member rides (Lyft Pass style) */
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  contactEmail String?
+  isActive    Boolean  @default(true)
+  ownerUserId String?
+  owner       User?    @relation("OrgOwner", fields: [ownerUserId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  passes RidePass[]
+}
+
+/**
+ * Budget-controlled ride credit pool.
+ * monthlyBudgetUsd = hard cap; spentUsd rises when rides complete.
+ */
+model RidePass {
+  id              String   @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String
+  monthlyBudgetUsd Float   @default(500)
+  spentUsd        Float    @default(0)
+  maxRideUsd      Float?   // optional per-ride cap
+  isActive        Boolean  @default(true)
+  validFrom       DateTime @default(now())
+  validUntil      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  rides Ride[]
+
+  @@index([organizationId])
 }
 
 model LocationPing {

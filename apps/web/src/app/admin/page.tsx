@@ -32,8 +32,27 @@ type RideRow = {
   isConcierge?: boolean;
   patientName?: string | null;
   assistanceLevel?: string;
+  passId?: string | null;
   rider: { fullName: string };
   driver?: { user: { fullName: string } } | null;
+};
+
+type OrgRow = {
+  id: string;
+  name: string;
+  contactEmail?: string | null;
+  passes: PassRow[];
+};
+
+type PassRow = {
+  id: string;
+  name: string;
+  monthlyBudgetUsd: number;
+  spentUsd: number;
+  maxRideUsd?: number | null;
+  isActive: boolean;
+  organizationId: string;
+  organization?: { id: string; name: string };
 };
 
 export default function AdminPage() {
@@ -42,8 +61,11 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [rides, setRides] = useState<RideRow[]>([]);
+  const [orgs, setOrgs] = useState<OrgRow[]>([]);
+  const [passes, setPasses] = useState<PassRow[]>([]);
   const [error, setError] = useState('');
   const [conciergeMsg, setConciergeMsg] = useState('');
+  const [passMsg, setPassMsg] = useState('');
   const [busy, setBusy] = useState(false);
 
   const [patientName, setPatientName] = useState('');
@@ -54,16 +76,29 @@ export default function AdminPage() {
   const [scheduledFor, setScheduledFor] = useState('');
   const [assisted, setAssisted] = useState(true);
   const [wheelchairNeeded, setWheelchairNeeded] = useState(false);
+  const [selectedPassId, setSelectedPassId] = useState('');
+
+  const [newOrgName, setNewOrgName] = useState('');
+  const [newOrgEmail, setNewOrgEmail] = useState('');
+  const [passOrgId, setPassOrgId] = useState('');
+  const [passName, setPassName] = useState('Monthly Member Pass');
+  const [passBudget, setPassBudget] = useState(500);
+  const [passMaxRide, setPassMaxRide] = useState(50);
 
   const load = useCallback(async () => {
-    const [s, d, r] = await Promise.all([
+    const [s, d, r, o, p] = await Promise.all([
       api<Stats>('/admin/stats'),
       api<DriverRow[]>('/admin/drivers'),
       api<RideRow[]>('/admin/rides'),
+      api<OrgRow[]>('/organizations').catch(() => [] as OrgRow[]),
+      api<PassRow[]>('/organizations/passes').catch(() => [] as PassRow[]),
     ]);
     setStats(s);
     setDrivers(d);
     setRides(r);
+    setOrgs(o);
+    setPasses(p);
+    setPassOrgId((prev) => prev || o[0]?.id || '');
   }, []);
 
   useEffect(() => {
@@ -107,6 +142,7 @@ export default function AdminPage() {
           assistanceLevel: assisted ? 'DOOR_TO_DOOR' : 'NONE',
           wheelchairNeeded,
           ridePurpose: 'Concierge medical transport',
+          ...(selectedPassId ? { passId: selectedPassId } : {}),
           ...(scheduledFor ? { scheduledFor: new Date(scheduledFor).toISOString() } : {}),
         }),
       });
@@ -116,6 +152,54 @@ export default function AdminPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Concierge booking failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createOrganization(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setPassMsg('');
+    setError('');
+    try {
+      await api('/organizations', {
+        method: 'POST',
+        body: JSON.stringify({ name: newOrgName, contactEmail: newOrgEmail || undefined }),
+      });
+      setPassMsg(`Organization "${newOrgName}" created`);
+      setNewOrgName('');
+      setNewOrgEmail('');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Create org failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createPass(e: FormEvent) {
+    e.preventDefault();
+    if (!passOrgId) {
+      setError('Create an organization first');
+      return;
+    }
+    setBusy(true);
+    setPassMsg('');
+    setError('');
+    try {
+      await api(`/organizations/${passOrgId}/passes`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: passName,
+          monthlyBudgetUsd: Number(passBudget),
+          maxRideUsd: Number(passMaxRide),
+        }),
+      });
+      setPassMsg(`Pass "${passName}" created`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Create pass failed');
     } finally {
       setBusy(false);
     }
@@ -220,6 +304,22 @@ export default function AdminPage() {
             />
             Wheelchair vehicle
           </label>
+          <label className="block text-sm sm:col-span-2">
+            Charge to Organization Pass (optional)
+            <select
+              value={selectedPassId}
+              onChange={(e) => setSelectedPassId(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            >
+              <option value="">— none —</option>
+              {passes.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.organization?.name || orgs.find((o) => o.id === p.organizationId)?.name} ·{' '}
+                  {p.name} (${(p.monthlyBudgetUsd - p.spentUsd).toFixed(0)} left)
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="submit"
             disabled={busy}
@@ -228,6 +328,141 @@ export default function AdminPage() {
             {busy ? 'Booking…' : 'Book concierge ride'}
           </button>
         </form>
+      </section>
+
+      <section className="mb-8 rounded-2xl bg-white/80 p-5 ring-1 ring-brand-100">
+        <h2 className="font-display text-xl text-brand-900">Organization Pass</h2>
+        <p className="mt-1 text-sm text-brand-800/75">
+          Like Lyft Pass — monthly budgets and per-ride caps. Spend increases when a linked ride
+          completes.
+        </p>
+        {passMsg && <p className="mt-2 text-sm text-emerald-700">{passMsg}</p>}
+
+        <form onSubmit={createOrganization} className="mt-4 grid gap-3 sm:grid-cols-3">
+          <label className="block text-sm sm:col-span-1">
+            New organization
+            <input
+              required
+              value={newOrgName}
+              onChange={(e) => setNewOrgName(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+              placeholder="ChenMed Clinic"
+            />
+          </label>
+          <label className="block text-sm">
+            Contact email
+            <input
+              type="email"
+              value={newOrgEmail}
+              onChange={(e) => setNewOrgEmail(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={busy}
+            className="self-end rounded-xl border border-brand-200 px-4 py-2.5 text-sm hover:bg-mist"
+          >
+            Create org
+          </button>
+        </form>
+
+        <form onSubmit={createPass} className="mt-4 grid gap-3 sm:grid-cols-4">
+          <label className="block text-sm">
+            Organization
+            <select
+              required
+              value={passOrgId}
+              onChange={(e) => setPassOrgId(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            >
+              <option value="">Select…</option>
+              {orgs.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm">
+            Pass name
+            <input
+              required
+              value={passName}
+              onChange={(e) => setPassName(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm">
+            Monthly budget ($)
+            <input
+              type="number"
+              min={0}
+              value={passBudget}
+              onChange={(e) => setPassBudget(Number(e.target.value))}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <label className="block text-sm">
+            Max per ride ($)
+            <input
+              type="number"
+              min={0}
+              value={passMaxRide}
+              onChange={(e) => setPassMaxRide(Number(e.target.value))}
+              className="mt-1 w-full rounded-lg border border-brand-100 px-3 py-2"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm text-white sm:col-span-4"
+          >
+            Create pass
+          </button>
+        </form>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="border-b border-brand-100 text-brand-700/70">
+              <tr>
+                <th className="px-2 py-2">Org</th>
+                <th className="px-2 py-2">Pass</th>
+                <th className="px-2 py-2">Budget</th>
+                <th className="px-2 py-2">Spent</th>
+                <th className="px-2 py-2">Left</th>
+                <th className="px-2 py-2">Max/ride</th>
+              </tr>
+            </thead>
+            <tbody>
+              {passes.map((p) => (
+                <tr key={p.id} className="border-b border-brand-50">
+                  <td className="px-2 py-2">
+                    {p.organization?.name ||
+                      orgs.find((o) => o.id === p.organizationId)?.name ||
+                      '—'}
+                  </td>
+                  <td className="px-2 py-2">{p.name}</td>
+                  <td className="px-2 py-2">${p.monthlyBudgetUsd.toFixed(0)}</td>
+                  <td className="px-2 py-2">${p.spentUsd.toFixed(2)}</td>
+                  <td className="px-2 py-2">
+                    ${(p.monthlyBudgetUsd - p.spentUsd).toFixed(2)}
+                  </td>
+                  <td className="px-2 py-2">
+                    {p.maxRideUsd != null ? `$${p.maxRideUsd}` : '—'}
+                  </td>
+                </tr>
+              ))}
+              {passes.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-2 py-3 text-brand-700/70">
+                    No passes yet — create an organization and pass above.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="mb-8">
